@@ -2,7 +2,6 @@
 import Parse from 'parse';
 import log from 'npmlog';
 import APNS from './APNS.js';
-import GCM from './GCM.js';
 import FCM from './FCM.js';
 import WEB from './WEB.js';
 import EXPO from './EXPO.js';
@@ -30,29 +29,30 @@ export default class ParsePushAdapter {
           'Push to ' + pushType + ' is not supported');
       }
       switch (pushType) {
-      case 'ios':
-      case 'tvos':
-      case 'osx':
-        if (pushConfig[pushType].hasOwnProperty('firebaseServiceAccount')) {
-          this.senderMap[pushType] = new FCM(pushConfig[pushType], 'apple');
-        } else {
-          this.senderMap[pushType] = new APNS(pushConfig[pushType]);
-        }
-        break;
-      case 'web':
-        this.senderMap[pushType] = new WEB(pushConfig[pushType]);
-        break;
-      case 'expo':
-        this.senderMap[pushType] = new EXPO(pushConfig[pushType]);
-        break;
-      case 'android':
-      case 'fcm':
-        if (pushConfig[pushType].hasOwnProperty('firebaseServiceAccount')) {
-          this.senderMap[pushType] = new FCM(pushConfig[pushType], 'android');
-        } else {
-          this.senderMap[pushType] = new GCM(pushConfig[pushType]);
-        }
-        break;
+        case 'ios':
+        case 'tvos':
+        case 'osx':
+          if (pushConfig[pushType].hasOwnProperty('firebaseServiceAccount')) {
+            this.senderMap[pushType] = new FCM(pushConfig[pushType], 'apple');
+          } else {
+            this.senderMap[pushType] = new APNS(pushConfig[pushType]);
+          }
+          break;
+        case 'web':
+          this.senderMap[pushType] = new WEB(pushConfig[pushType]);
+          break;
+        case 'expo':
+          this.senderMap[pushType] = new EXPO(pushConfig[pushType]);
+          break;
+        case 'android':
+        case 'fcm':
+          if (pushConfig[pushType].hasOwnProperty('firebaseServiceAccount')) {
+            this.senderMap[pushType] = new FCM(pushConfig[pushType], 'android');
+          } else {
+            throw new Parse.Error(Parse.Error.PUSH_MISCONFIGURED,
+              'GCM is no longer supported, please use FCM');
+          }
+          break;
       }
     }
   }
@@ -72,14 +72,14 @@ export default class ParsePushAdapter {
       const sender = this.senderMap[pushType];
       const devices = deviceMap[pushType];
 
-      if(Array.isArray(devices) && devices.length > 0) {
+      if (Array.isArray(devices) && devices.length > 0) {
         if (!sender) {
           log.verbose(LOG_PREFIX, `Can not find sender for push type ${pushType}, ${data}`)
           const results = devices.map((device) => {
             return Promise.resolve({
               device,
               transmitted: false,
-              response: {'error': `Can not find sender for push type ${pushType}, ${data}`}
+              response: { 'error': `Can not find sender for push type ${pushType}, ${data}` }
             })
           });
           sendPromises.push(Promise.all(results));
